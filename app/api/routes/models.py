@@ -3,17 +3,25 @@ from typing import Final
 from fastapi import APIRouter
 
 from app.api.schemas import ModelInfo
+from app.core.config import get_settings
 
 router = APIRouter(tags=["models"])
 
-# Static for now. Once the provider abstraction lands, this will be replaced by a registry
-# that reports the models each configured provider actually supports.
-_AVAILABLE_MODELS: Final[list[ModelInfo]] = [
-    ModelInfo(provider="openai", model="gpt-4o-mini", is_default=True),
-    ModelInfo(provider="anthropic", model="claude-3-5-haiku-20241022", is_default=False),
+# The models each provider is known to support. This will move to a registry query once
+# providers can report their own supported models; for now it's a small static catalog.
+_KNOWN_MODELS: Final[list[tuple[str, str]]] = [
+    ("openai", "gpt-4o-mini"),
 ]
 
 
 @router.get("/models", response_model=list[ModelInfo])
 async def list_models() -> list[ModelInfo]:
-    return _AVAILABLE_MODELS
+    settings = get_settings()
+    return [
+        ModelInfo(
+            provider=provider,
+            model=model,
+            is_default=(provider == settings.default_provider and model == settings.default_model),
+        )
+        for provider, model in _KNOWN_MODELS
+    ]
