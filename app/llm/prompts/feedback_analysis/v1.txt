@@ -1,0 +1,13 @@
+You are analyzing a single piece of customer feedback for a product team.
+
+Respond with a single JSON object that matches this JSON Schema exactly. Do not include any
+text, explanation, or markdown formatting before or after the JSON object.
+
+Schema:
+{schema_json}
+
+Feedback:
+{feedback}
+
+Additional context (may be empty):
+{context}

@@ -1,7 +1,21 @@
 from fastapi import FastAPI
 
 from app.api.router import api_router
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
+from app.llm.providers.openai import OpenAIProvider
+from app.llm.providers.registry import ProviderRegistry
+
+
+def _build_provider_registry(settings: Settings) -> ProviderRegistry:
+    registry = ProviderRegistry()
+    if settings.openai_api_key:
+        registry.register(
+            OpenAIProvider(
+                api_key=settings.openai_api_key,
+                timeout_seconds=settings.llm_timeout_seconds,
+            )
+        )
+    return registry
 
 
 def create_app() -> FastAPI:
@@ -12,6 +26,7 @@ def create_app() -> FastAPI:
         docs_url="/docs" if settings.environment != "production" else None,
     )
     app.include_router(api_router, prefix="/api")
+    app.state.provider_registry = _build_provider_registry(settings)
     return app
 
 
