@@ -2,6 +2,7 @@ from fastapi import FastAPI
 
 from app.api.router import api_router
 from app.core.config import Settings, get_settings
+from app.llm.providers.anthropic import AnthropicProvider
 from app.llm.providers.openai import OpenAIProvider
 from app.llm.providers.registry import ProviderRegistry
 
@@ -12,6 +13,13 @@ def _build_provider_registry(settings: Settings) -> ProviderRegistry:
         registry.register(
             OpenAIProvider(
                 api_key=settings.openai_api_key,
+                timeout_seconds=settings.llm_timeout_seconds,
+            )
+        )
+    if settings.anthropic_api_key:
+        registry.register(
+            AnthropicProvider(
+                api_key=settings.anthropic_api_key,
                 timeout_seconds=settings.llm_timeout_seconds,
             )
         )

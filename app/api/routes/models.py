@@ -11,6 +11,7 @@ router = APIRouter(tags=["models"])
 # providers can report their own supported models; for now it's a small static catalog.
 _KNOWN_MODELS: Final[list[tuple[str, str]]] = [
     ("openai", "gpt-4o-mini"),
+    ("anthropic", "claude-3-5-haiku-20241022"),
 ]
 
 

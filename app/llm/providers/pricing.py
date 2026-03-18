@@ -3,6 +3,7 @@
 # observability and evaluation, not as a billing-grade source of truth.
 _PRICING_PER_MILLION_TOKENS: dict[str, tuple[float, float]] = {
     "gpt-4o-mini": (0.15, 0.60),
+    "claude-3-5-haiku-20241022": (0.80, 4.00),
 }
 
 
