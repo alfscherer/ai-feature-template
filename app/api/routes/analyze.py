@@ -1,3 +1,4 @@
+import logging
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -5,9 +6,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.dependencies import get_provider_registry
 from app.api.schemas import AnalyzeMetadata, AnalyzeRequest, AnalyzeResponse
 from app.core.config import get_settings
-from app.llm.providers.base import ProviderError
+from app.llm.providers.base import ProviderAuthenticationError, ProviderError
 from app.llm.providers.registry import ProviderRegistry
 from app.services.feedback_analysis import FeedbackAnalysisService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["analyze"])
 
@@ -33,6 +36,16 @@ async def analyze_feedback(
 
     try:
         outcome = await service.analyze(feedback=payload.feedback, context=payload.context)
+    except ProviderAuthenticationError as exc:
+        # This is our misconfiguration, not the caller's or the provider's -- a 502 would
+        # wrongly suggest retrying against a different provider might help.
+        logger.error(
+            "provider authentication failed", extra={"provider": settings.default_provider}
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="LLM provider authentication failed.",
+        ) from exc
     except ProviderError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 

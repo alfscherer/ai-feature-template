@@ -14,7 +14,7 @@ from app.llm.providers.base import (
     LLMProvider,
     LLMTextResult,
     ProviderAuthenticationError,
-    ProviderError,
+    ProviderConnectionError,
     ProviderRateLimitError,
     ProviderResponseError,
     ProviderTimeoutError,
@@ -56,7 +56,7 @@ class AnthropicProvider(LLMProvider):
         except APITimeoutError as exc:
             raise ProviderTimeoutError(str(exc)) from exc
         except APIConnectionError as exc:
-            raise ProviderError(str(exc)) from exc
+            raise ProviderConnectionError(str(exc)) from exc
         except (APIStatusError, AnthropicError) as exc:
             raise ProviderResponseError(str(exc)) from exc
 

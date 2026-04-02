@@ -14,6 +14,10 @@ class ProviderRateLimitError(ProviderError):
     pass
 
 
+class ProviderConnectionError(ProviderError):
+    """Transport-level failure (DNS, TCP reset, etc.) -- no response was received at all."""
+
+
 class ProviderAuthenticationError(ProviderError):
     pass
 

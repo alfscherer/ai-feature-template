@@ -13,7 +13,7 @@ from app.llm.providers.base import (
     LLMProvider,
     LLMTextResult,
     ProviderAuthenticationError,
-    ProviderError,
+    ProviderConnectionError,
     ProviderRateLimitError,
     ProviderResponseError,
     ProviderTimeoutError,
@@ -52,7 +52,7 @@ class OpenAIProvider(LLMProvider):
         except APITimeoutError as exc:
             raise ProviderTimeoutError(str(exc)) from exc
         except APIConnectionError as exc:
-            raise ProviderError(str(exc)) from exc
+            raise ProviderConnectionError(str(exc)) from exc
         except APIStatusError as exc:
             raise ProviderResponseError(str(exc)) from exc
 

@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     default_provider: str = "openai"
     default_model: str = "gpt-4o-mini"
     llm_timeout_seconds: float = 30.0
+    llm_max_attempts: int = 3
 
 
 @lru_cache

@@ -1,7 +1,13 @@
 from fastapi.testclient import TestClient
 
 from app.api.dependencies import get_provider_registry
-from app.llm.providers.base import LLMProvider, LLMTextResult, ProviderError, TokenUsage
+from app.llm.providers.base import (
+    LLMProvider,
+    LLMTextResult,
+    ProviderAuthenticationError,
+    ProviderError,
+    TokenUsage,
+)
 from app.llm.providers.registry import ProviderRegistry
 from app.main import app
 
@@ -83,3 +89,11 @@ def test_analyze_maps_provider_error_to_502(client: TestClient) -> None:
     response = client.post("/api/analyze", json={"feedback": "The export button is broken."})
 
     assert response.status_code == 502
+
+
+def test_analyze_maps_authentication_error_to_500(client: TestClient) -> None:
+    _override_registry(_FakeProvider(error=ProviderAuthenticationError("bad key")))
+
+    response = client.post("/api/analyze", json={"feedback": "The export button is broken."})
+
+    assert response.status_code == 500
