@@ -1,7 +1,10 @@
+import hashlib
 import logging
 import time
 from dataclasses import dataclass
+from typing import Protocol
 
+from app.core.cache import TTLCache
 from app.llm.prompts.render import CURRENT_VERSION, render_feedback_analysis_prompt
 from app.llm.providers.base import LLMProvider
 from app.llm.providers.pricing import estimate_cost_usd
@@ -98,6 +101,49 @@ class FeedbackAnalysisService:
             estimated_cost_usd=estimated_cost_usd,
             degraded=degraded,
         )
+
+
+class FeedbackAnalyzer(Protocol):
+    async def analyze(self, *, feedback: str, context: str | None) -> FeedbackAnalysisOutcome: ...
+
+
+class CachingFeedbackAnalysisService:
+    """Skips the LLM call entirely for feedback this exact provider/model has already analyzed.
+
+    Wraps any FeedbackAnalyzer rather than being built into FeedbackAnalysisService itself, so
+    caching can be turned off (or swapped for a different cache) without touching the analysis
+    logic. See docs/caching.md for the tradeoffs of the cache implementation.
+    """
+
+    def __init__(
+        self,
+        inner: FeedbackAnalyzer,
+        *,
+        cache: TTLCache[FeedbackAnalysisOutcome],
+        provider: str,
+        model: str,
+    ) -> None:
+        self._inner = inner
+        self._cache = cache
+        self._provider = provider
+        self._model = model
+
+    async def analyze(self, *, feedback: str, context: str | None) -> FeedbackAnalysisOutcome:
+        key = self._cache_key(feedback=feedback, context=context)
+
+        cached = self._cache.get(key)
+        if cached is not None:
+            return cached
+
+        outcome = await self._inner.analyze(feedback=feedback, context=context)
+        self._cache.set(key, outcome)
+        return outcome
+
+    def _cache_key(self, *, feedback: str, context: str | None) -> str:
+        digest_input = "\x1f".join(
+            [self._provider, self._model, CURRENT_VERSION, feedback, context or ""]
+        )
+        return hashlib.sha256(digest_input.encode("utf-8")).hexdigest()
 
 
 def _build_repair_prompt(original_prompt: str, error: StructuredOutputError) -> str:

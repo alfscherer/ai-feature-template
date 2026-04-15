@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = 30.0
     llm_max_attempts: int = 3
 
+    database_url: str = "sqlite+aiosqlite:///./data/feedback.db"
+    cache_ttl_seconds: float = 3600.0
+
 
 @lru_cache
 def get_settings() -> Settings:

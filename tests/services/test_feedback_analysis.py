@@ -1,7 +1,12 @@
 import pytest
 
+from app.core.cache import TTLCache
 from app.llm.providers.base import LLMProvider, LLMTextResult, TokenUsage
-from app.services.feedback_analysis import FeedbackAnalysisService
+from app.services.feedback_analysis import (
+    CachingFeedbackAnalysisService,
+    FeedbackAnalysisOutcome,
+    FeedbackAnalysisService,
+)
 
 _VALID_RESPONSE = """{
     "summary": "User is frustrated with slow load times.",
@@ -71,4 +76,35 @@ async def test_analyze_returns_degraded_result_when_repair_also_fails() -> None:
 
     assert outcome.degraded is True
     assert outcome.analysis.confidence == 0.0
+    assert provider.calls == 2
+
+
+@pytest.mark.asyncio
+async def test_caching_service_skips_second_identical_call() -> None:
+    provider = _ScriptedProvider([_VALID_RESPONSE, _VALID_RESPONSE])
+    inner = FeedbackAnalysisService(provider, model="gpt-4o-mini")
+    cache: TTLCache[FeedbackAnalysisOutcome] = TTLCache(ttl_seconds=60)
+    service = CachingFeedbackAnalysisService(
+        inner, cache=cache, provider="scripted", model="gpt-4o-mini"
+    )
+
+    first = await service.analyze(feedback="It's slow.", context=None)
+    second = await service.analyze(feedback="It's slow.", context=None)
+
+    assert first == second
+    assert provider.calls == 1
+
+
+@pytest.mark.asyncio
+async def test_caching_service_treats_different_feedback_as_different_keys() -> None:
+    provider = _ScriptedProvider([_VALID_RESPONSE, _VALID_RESPONSE])
+    inner = FeedbackAnalysisService(provider, model="gpt-4o-mini")
+    cache: TTLCache[FeedbackAnalysisOutcome] = TTLCache(ttl_seconds=60)
+    service = CachingFeedbackAnalysisService(
+        inner, cache=cache, provider="scripted", model="gpt-4o-mini"
+    )
+
+    await service.analyze(feedback="It's slow.", context=None)
+    await service.analyze(feedback="It's great!", context=None)
+
     assert provider.calls == 2
