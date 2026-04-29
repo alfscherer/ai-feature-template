@@ -1,4 +1,4 @@
-.PHONY: install lint format typecheck test
+.PHONY: install lint format typecheck test eval
 
 install:
 	pip install -e ".[dev]"
@@ -15,3 +15,7 @@ typecheck:
 
 test:
 	pytest
+
+# Hits real LLM APIs; needs a provider key in .env. See docs/evaluation.md.
+eval:
+	python -m evals.run $(ARGS)

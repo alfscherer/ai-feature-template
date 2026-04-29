@@ -46,12 +46,17 @@ class FeedbackAnalysisService:
     caller and never returns unvalidated data.
     """
 
-    def __init__(self, provider: LLMProvider, *, model: str) -> None:
+    def __init__(
+        self, provider: LLMProvider, *, model: str, prompt_version: str = CURRENT_VERSION
+    ) -> None:
         self._provider = provider
         self._model = model
+        self._prompt_version = prompt_version
 
     async def analyze(self, *, feedback: str, context: str | None) -> FeedbackAnalysisOutcome:
-        prompt = render_feedback_analysis_prompt(feedback=feedback, context=context)
+        prompt = render_feedback_analysis_prompt(
+            feedback=feedback, context=context, version=self._prompt_version
+        )
         start = time.perf_counter()
         input_tokens = 0
         output_tokens = 0
@@ -94,7 +99,7 @@ class FeedbackAnalysisService:
             analysis=analysis,
             provider=self._provider.name,
             model=self._model,
-            prompt_version=CURRENT_VERSION,
+            prompt_version=self._prompt_version,
             latency_ms=latency_ms,
             input_tokens=input_tokens,
             output_tokens=output_tokens,
@@ -122,11 +127,13 @@ class CachingFeedbackAnalysisService:
         cache: TTLCache[FeedbackAnalysisOutcome],
         provider: str,
         model: str,
+        prompt_version: str = CURRENT_VERSION,
     ) -> None:
         self._inner = inner
         self._cache = cache
         self._provider = provider
         self._model = model
+        self._prompt_version = prompt_version
 
     async def analyze(self, *, feedback: str, context: str | None) -> FeedbackAnalysisOutcome:
         key = self._cache_key(feedback=feedback, context=context)
@@ -141,7 +148,7 @@ class CachingFeedbackAnalysisService:
 
     def _cache_key(self, *, feedback: str, context: str | None) -> str:
         digest_input = "\x1f".join(
-            [self._provider, self._model, CURRENT_VERSION, feedback, context or ""]
+            [self._provider, self._model, self._prompt_version, feedback, context or ""]
         )
         return hashlib.sha256(digest_input.encode("utf-8")).hexdigest()
 
