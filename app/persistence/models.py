@@ -20,6 +20,12 @@ class AnalysisRecord(Base):
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
     )
 
+    # The request's correlation ID (also in logs and the X-Request-ID response header). Not the
+    # primary key: a caller can supply their own X-Request-ID, and trusting client input as a
+    # primary key means a repeated or colliding value from one caller breaks inserts for
+    # everyone. Indexed since "find the DB row for this request ID" is the whole point of it.
+    request_id: Mapped[str] = mapped_column(String(100), index=True)
+
     feedback: Mapped[str] = mapped_column(Text)
     context: Mapped[str | None] = mapped_column(Text, nullable=True)
 

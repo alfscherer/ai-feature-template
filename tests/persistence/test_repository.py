@@ -26,6 +26,7 @@ async def session() -> AsyncIterator[AsyncSession]:
 def _record(record_id: str = "rec-1") -> AnalysisRecord:
     return AnalysisRecord(
         id=record_id,
+        request_id=f"req-{record_id}",
         feedback="The export button is broken.",
         context=None,
         provider="openai",

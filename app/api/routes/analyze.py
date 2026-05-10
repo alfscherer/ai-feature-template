@@ -1,7 +1,7 @@
 import logging
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import get_analysis_cache, get_db_session, get_provider_registry
@@ -26,6 +26,7 @@ router = APIRouter(tags=["analyze"])
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_feedback(
     payload: AnalyzeRequest,
+    request: Request,
     registry: ProviderRegistry = Depends(get_provider_registry),
     cache: TTLCache[FeedbackAnalysisOutcome] = Depends(get_analysis_cache),
     db: AsyncSession = Depends(get_db_session),
@@ -64,11 +65,12 @@ async def analyze_feedback(
     except ProviderError as exc:
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
-    request_id = str(uuid4())
+    request_id: str = request.state.request_id
 
     await AnalysisRepository(db).save(
         AnalysisRecord(
-            id=request_id,
+            id=str(uuid4()),
+            request_id=request_id,
             feedback=payload.feedback,
             context=payload.context,
             provider=outcome.provider,

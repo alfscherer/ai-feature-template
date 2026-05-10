@@ -95,6 +95,22 @@ class FeedbackAnalysisService:
             self._model, input_tokens=input_tokens, output_tokens=output_tokens
         )
 
+        # Deliberately no `feedback` or `context` here -- see docs/observability.md. Everything
+        # else needed to debug or cost-attribute this request is present.
+        logger.info(
+            "feedback analysis completed",
+            extra={
+                "provider": self._provider.name,
+                "model": self._model,
+                "prompt_version": self._prompt_version,
+                "latency_ms": round(latency_ms, 2),
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "estimated_cost_usd": estimated_cost_usd,
+                "degraded": degraded,
+            },
+        )
+
         return FeedbackAnalysisOutcome(
             analysis=analysis,
             provider=self._provider.name,

@@ -1,6 +1,10 @@
+import logging
+
+import pytest
 from fastapi.testclient import TestClient
 
 from app.api.dependencies import get_provider_registry
+from app.api.middleware import REQUEST_ID_HEADER
 from app.llm.providers.base import (
     LLMProvider,
     LLMTextResult,
@@ -81,6 +85,27 @@ def test_analyze_returns_structured_result(client: TestClient) -> None:
     assert body["metadata"]["provider"] == "openai"
     assert body["metadata"]["prompt_version"] == "v1"
     assert body["metadata"]["degraded"] is False
+    # The client-visible request_id and log-correlation request_id are the same value.
+    assert body["metadata"]["request_id"] == response.headers[REQUEST_ID_HEADER]
+
+
+def test_analyze_does_not_log_raw_feedback_or_context(
+    client: TestClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    _override_registry(_FakeProvider(text=_VALID_RESPONSE))
+    secret_feedback = "UNIQUE_MARKER_37f2 this contains sensitive account details"
+
+    with caplog.at_level(logging.INFO):
+        client.post(
+            "/api/analyze", json={"feedback": secret_feedback, "context": "internal-context-xyz"}
+        )
+
+    for record in caplog.records:
+        assert "UNIQUE_MARKER_37f2" not in record.getMessage()
+        assert "internal-context-xyz" not in record.getMessage()
+        for value in vars(record).values():
+            assert "UNIQUE_MARKER_37f2" not in str(value)
+            assert "internal-context-xyz" not in str(value)
 
 
 def test_analyze_maps_provider_error_to_502(client: TestClient) -> None:

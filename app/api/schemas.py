@@ -36,3 +36,12 @@ class ModelInfo(BaseModel):
 
 class HealthResponse(BaseModel):
     status: str
+
+
+class MetricsResponse(BaseModel):
+    total_requests: int
+    degraded_requests: int
+    average_latency_ms: float
+    total_input_tokens: int
+    total_output_tokens: int
+    total_estimated_cost_usd: float | None
