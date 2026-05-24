@@ -1,0 +1,175 @@
+:root {
+  color-scheme: light;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f7f7f8;
+  color: #1a1a1a;
+}
+
+.page {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.subtitle {
+  color: #555;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 1.5rem;
+}
+
+label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 0.6rem;
+}
+
+textarea,
+input {
+  font: inherit;
+  padding: 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  resize: vertical;
+}
+
+button {
+  margin-top: 1rem;
+  padding: 0.6rem 1.2rem;
+  font: inherit;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  background: #1a1a1a;
+  color: white;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+button:disabled {
+  background: #999;
+  cursor: not-allowed;
+}
+
+.error {
+  margin-top: 1.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  background: #fdecea;
+  color: #7a271a;
+  font-size: 0.9rem;
+}
+
+.result {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  border-radius: 8px;
+  background: white;
+  border: 1px solid #e2e2e2;
+}
+
+.degraded-banner {
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 6px;
+  background: #fff4e5;
+  color: #7a4a00;
+  font-size: 0.85rem;
+}
+
+.badges {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+}
+
+.badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: #eee;
+  color: #333;
+}
+
+.badge.sentiment-positive {
+  background: #e6f4ea;
+  color: #1e6b34;
+}
+.badge.sentiment-negative {
+  background: #fdecea;
+  color: #a02f21;
+}
+.badge.sentiment-mixed {
+  background: #fff4e5;
+  color: #8a5300;
+}
+.badge.sentiment-neutral {
+  background: #eee;
+  color: #444;
+}
+
+.badge.urgency-critical {
+  background: #fdecea;
+  color: #a02f21;
+}
+.badge.urgency-high {
+  background: #fff0e0;
+  color: #8a4600;
+}
+.badge.urgency-medium {
+  background: #fff8e0;
+  color: #7a6400;
+}
+.badge.urgency-low {
+  background: #eee;
+  color: #444;
+}
+
+.summary {
+  font-size: 1rem;
+  line-height: 1.5;
+  margin: 0 0 1rem;
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.3rem 1rem;
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+}
+
+.fields dt {
+  font-weight: 600;
+  color: #555;
+}
+
+.fields dd {
+  margin: 0;
+}
+
+.metadata {
+  font-size: 0.78rem;
+  color: #777;
+  border-top: 1px solid #eee;
+  padding-top: 0.75rem;
+}
