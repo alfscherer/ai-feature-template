@@ -74,3 +74,20 @@ def test_summarize_counts_errors_separately_from_scored_results() -> None:
     assert summary.error_count == 1
     # Only the non-error example contributes to the rate.
     assert summary.schema_validity_rate == 1.0
+
+
+def test_summarize_when_every_example_errored() -> None:
+    results = [
+        _result(example_id="a", error="timeout"),
+        _result(example_id="b", error="timeout"),
+    ]
+
+    summary = summarize("cfg", results)
+
+    assert summary.example_count == 2
+    assert summary.error_count == 2
+    assert summary.schema_validity_rate == 0.0
+    assert summary.sentiment_agreement is None
+    assert summary.mean_latency_ms == 0.0
+    assert summary.total_input_tokens == 0
+    assert summary.total_estimated_cost_usd is None

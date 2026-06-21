@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from evals.dataset import load_dataset
 
 
@@ -46,3 +48,15 @@ def test_dataset_covers_required_categories() -> None:
         "malformed",
     }
     assert required.issubset(all_tags)
+
+
+def test_load_dataset_skips_blank_lines(tmp_path: Path) -> None:
+    dataset_file = tmp_path / "dataset.jsonl"
+    dataset_file.write_text(
+        '{"id": "a", "feedback": "hi"}\n\n{"id": "b", "feedback": "bye"}\n',
+        encoding="utf-8",
+    )
+
+    examples = load_dataset(dataset_file)
+
+    assert [e.id for e in examples] == ["a", "b"]

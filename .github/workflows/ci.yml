@@ -18,7 +18,7 @@ jobs:
       - run: ruff check .
       - run: black --check .
       - run: mypy app evals
-      - run: pytest
+      - run: pytest --cov --cov-report=term-missing
 
   frontend:
     runs-on: ubuntu-latest

@@ -28,9 +28,26 @@ def test_build_provider_wraps_with_retry() -> None:
     assert provider.name == "openai"
 
 
+def test_build_provider_builds_anthropic_too() -> None:
+    settings = Settings(anthropic_api_key="test-key")
+
+    provider = build_provider("anthropic", settings)
+
+    assert isinstance(provider, RetryingProvider)
+    assert provider.name == "anthropic"
+
+
 def test_build_provider_registry_only_includes_configured_providers() -> None:
     settings = Settings(openai_api_key="test-key", anthropic_api_key=None)
 
     registry = build_provider_registry(settings)
 
     assert registry.names() == ["openai"]
+
+
+def test_build_provider_registry_includes_both_when_both_configured() -> None:
+    settings = Settings(openai_api_key="test-key", anthropic_api_key="test-key")
+
+    registry = build_provider_registry(settings)
+
+    assert set(registry.names()) == {"openai", "anthropic"}

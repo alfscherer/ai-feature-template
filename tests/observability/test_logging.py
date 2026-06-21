@@ -1,5 +1,6 @@
 import json
 import logging
+import sys
 
 from app.observability.context import request_id_var
 from app.observability.logging import JSONFormatter, RequestIdFilter
@@ -66,3 +67,25 @@ def test_request_id_filter_defaults_to_none_outside_a_request() -> None:
     RequestIdFilter().filter(record)
 
     assert record.request_id is None  # type: ignore[attr-defined]
+
+
+def test_request_id_filter_does_not_overwrite_an_explicit_value() -> None:
+    token = request_id_var.set("from-contextvar")
+    try:
+        record = _make_record(request_id="from-caller")
+        RequestIdFilter().filter(record)
+        assert record.request_id == "from-caller"  # type: ignore[attr-defined]
+    finally:
+        request_id_var.reset(token)
+
+
+def test_formatter_includes_exception_traceback() -> None:
+    try:
+        raise ValueError("boom")
+    except ValueError:
+        record = _make_record()
+        record.exc_info = sys.exc_info()
+
+    payload = json.loads(JSONFormatter().format(record))
+
+    assert "ValueError: boom" in payload["exception"]

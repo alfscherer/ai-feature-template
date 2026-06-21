@@ -2,14 +2,22 @@ from unittest.mock import AsyncMock
 
 import httpx
 import pytest
-from anthropic import AuthenticationError, RateLimitError
+from anthropic import (
+    APIConnectionError,
+    APIStatusError,
+    APITimeoutError,
+    AuthenticationError,
+    RateLimitError,
+)
 from anthropic.types import Message, TextBlock, Usage
 
 from app.llm.providers.anthropic import AnthropicProvider
 from app.llm.providers.base import (
     ProviderAuthenticationError,
+    ProviderConnectionError,
     ProviderRateLimitError,
     ProviderResponseError,
+    ProviderTimeoutError,
 )
 
 _REQUEST = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
@@ -79,4 +87,35 @@ async def test_generate_text_maps_rate_limit_error() -> None:
     provider = _make_provider(client)
 
     with pytest.raises(ProviderRateLimitError):
+        await provider.generate_text(prompt="hi", model="claude-3-5-haiku-20241022")
+
+
+@pytest.mark.asyncio
+async def test_generate_text_maps_timeout_error() -> None:
+    client = AsyncMock()
+    client.messages.create.side_effect = APITimeoutError(_REQUEST)
+    provider = _make_provider(client)
+
+    with pytest.raises(ProviderTimeoutError):
+        await provider.generate_text(prompt="hi", model="claude-3-5-haiku-20241022")
+
+
+@pytest.mark.asyncio
+async def test_generate_text_maps_connection_error() -> None:
+    client = AsyncMock()
+    client.messages.create.side_effect = APIConnectionError(request=_REQUEST)
+    provider = _make_provider(client)
+
+    with pytest.raises(ProviderConnectionError):
+        await provider.generate_text(prompt="hi", model="claude-3-5-haiku-20241022")
+
+
+@pytest.mark.asyncio
+async def test_generate_text_maps_generic_status_error() -> None:
+    client = AsyncMock()
+    response = httpx.Response(500, request=_REQUEST, json={"error": {"message": "oops"}})
+    client.messages.create.side_effect = APIStatusError("oops", response=response, body=None)
+    provider = _make_provider(client)
+
+    with pytest.raises(ProviderResponseError):
         await provider.generate_text(prompt="hi", model="claude-3-5-haiku-20241022")

@@ -1,4 +1,4 @@
-.PHONY: install lint format typecheck test eval frontend-install frontend-dev frontend-build
+.PHONY: install lint format typecheck test coverage eval frontend-install frontend-dev frontend-build
 
 install:
 	pip install -e ".[dev]"
@@ -11,10 +11,13 @@ format:
 	ruff check --fix .
 
 typecheck:
-	mypy app
+	mypy app evals
 
 test:
 	pytest
+
+coverage:
+	pytest --cov --cov-report=term-missing
 
 # Hits real LLM APIs; needs a provider key in .env. See docs/evaluation.md.
 eval:

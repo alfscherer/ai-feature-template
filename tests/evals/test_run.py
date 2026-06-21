@@ -1,11 +1,20 @@
 import pytest
 
+from app.core.config import get_settings
 from app.llm.providers.base import LLMProvider, LLMTextResult, ProviderError, TokenUsage
 from app.llm.schemas.feedback import Sentiment
 from app.services.feedback_analysis import FeedbackAnalysisService
 from evals.dataset import EvalExample
 from evals.metrics import ExampleResult, summarize
-from evals.run import RunConfig, _match, _run_example, print_summary_table
+from evals.run import (
+    RunConfig,
+    _main,
+    _match,
+    _parse_args,
+    _run_example,
+    print_summary_table,
+    run_config,
+)
 
 _VALID_RESPONSE = """{
     "summary": "User is happy with the new dashboard.",
@@ -83,6 +92,86 @@ async def test_run_example_records_provider_errors_without_raising() -> None:
 
     assert result.error == "upstream is down"
     assert result.schema_valid is False
+
+
+def test_parse_args_defaults_are_none() -> None:
+    args = _parse_args([])
+
+    assert args.provider is None
+    assert args.model is None
+    assert args.prompt_version is None
+    assert args.compare_provider is None
+    assert args.compare_model is None
+    assert args.compare_prompt_version is None
+
+
+def test_parse_args_reads_flags() -> None:
+    args = _parse_args(["--provider", "openai", "--compare-model", "gpt-4o"])
+
+    assert args.provider == "openai"
+    assert args.compare_model == "gpt-4o"
+
+
+@pytest.mark.asyncio
+async def test_run_config_summarizes_the_given_examples(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        "evals.run.build_provider", lambda name, settings: _FakeProvider(text=_VALID_RESPONSE)
+    )
+    config = RunConfig(provider="openai", model="gpt-4o-mini", prompt_version="v1")
+    examples = [
+        EvalExample(id="a", feedback="Love it!", expected_sentiment=Sentiment.POSITIVE),
+        EvalExample(id="b", feedback="Hate it!", expected_sentiment=Sentiment.NEGATIVE),
+    ]
+
+    summary = await run_config(config, examples, get_settings())
+
+    assert summary.label == "openai/gpt-4o-mini@v1"
+    assert summary.example_count == 2
+
+
+@pytest.mark.asyncio
+async def test_main_runs_a_single_config(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(
+        "evals.run.build_provider", lambda name, settings: _FakeProvider(text=_VALID_RESPONSE)
+    )
+
+    exit_code = await _main(["--provider", "openai", "--model", "gpt-4o-mini"])
+
+    assert exit_code == 0
+    assert "openai/gpt-4o-mini@v1" in capsys.readouterr().out
+
+
+@pytest.mark.asyncio
+async def test_main_runs_a_comparison_when_requested(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.setattr(
+        "evals.run.build_provider", lambda name, settings: _FakeProvider(text=_VALID_RESPONSE)
+    )
+
+    exit_code = await _main(["--provider", "openai", "--compare-prompt-version", "v2"])
+
+    out = capsys.readouterr().out
+    assert exit_code == 0
+    assert "@v1" in out
+    assert "@v2" in out
+
+
+@pytest.mark.asyncio
+async def test_main_returns_nonzero_when_provider_is_unconfigured(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def _raise(name: str, settings: object) -> LLMProvider:
+        raise ValueError(f"No API key configured for provider {name!r}.")
+
+    monkeypatch.setattr("evals.run.build_provider", _raise)
+
+    exit_code = await _main(["--provider", "openai"])
+
+    assert exit_code == 1
+    assert "error:" in capsys.readouterr().err
 
 
 def test_print_summary_table_does_not_raise(capsys: pytest.CaptureFixture[str]) -> None:

@@ -2,7 +2,13 @@ from unittest.mock import AsyncMock
 
 import httpx
 import pytest
-from openai import AuthenticationError, RateLimitError
+from openai import (
+    APIConnectionError,
+    APIStatusError,
+    APITimeoutError,
+    AuthenticationError,
+    RateLimitError,
+)
 from openai.types.chat import ChatCompletion
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
@@ -10,8 +16,10 @@ from openai.types.completion_usage import CompletionUsage
 
 from app.llm.providers.base import (
     ProviderAuthenticationError,
+    ProviderConnectionError,
     ProviderRateLimitError,
     ProviderResponseError,
+    ProviderTimeoutError,
 )
 from app.llm.providers.openai import OpenAIProvider
 
@@ -88,4 +96,37 @@ async def test_generate_text_maps_rate_limit_error() -> None:
     provider = _make_provider(client)
 
     with pytest.raises(ProviderRateLimitError):
+        await provider.generate_text(prompt="hi", model="gpt-4o-mini")
+
+
+@pytest.mark.asyncio
+async def test_generate_text_maps_timeout_error() -> None:
+    client = AsyncMock()
+    client.chat.completions.create.side_effect = APITimeoutError(_REQUEST)
+    provider = _make_provider(client)
+
+    with pytest.raises(ProviderTimeoutError):
+        await provider.generate_text(prompt="hi", model="gpt-4o-mini")
+
+
+@pytest.mark.asyncio
+async def test_generate_text_maps_connection_error() -> None:
+    client = AsyncMock()
+    client.chat.completions.create.side_effect = APIConnectionError(request=_REQUEST)
+    provider = _make_provider(client)
+
+    with pytest.raises(ProviderConnectionError):
+        await provider.generate_text(prompt="hi", model="gpt-4o-mini")
+
+
+@pytest.mark.asyncio
+async def test_generate_text_maps_generic_status_error() -> None:
+    client = AsyncMock()
+    response = httpx.Response(500, request=_REQUEST, json={"error": {"message": "oops"}})
+    client.chat.completions.create.side_effect = APIStatusError(
+        "oops", response=response, body=None
+    )
+    provider = _make_provider(client)
+
+    with pytest.raises(ProviderResponseError):
         await provider.generate_text(prompt="hi", model="gpt-4o-mini")
